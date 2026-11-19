@@ -36,7 +36,7 @@ function intents(d, mg) {
   const lignes = f.niveaux.map((n) => `• ${n.nom.fr} : ${ar(commun + 3 * n.tranche)}/an (${ar(n.tranche)} × 3 tranches + ${ar(commun)} de frais communs)`).join('\n');
   const parcours = d.formations.items;
   return [
-    { k: /\b(frais|prix|tarif|cout|combien|scolarite|payer|paiement|saram|ohatrinona|firy)\b/,
+    { k: /\b(frais|prix|tarifs|tarif|cout|combien|scolarite|payer|paiement|saram|ohatrinona|firy)\b/,
       r: `💰 Frais de scolarité (à titre indicatif) :\n${lignes}\n\nFrais communs : ` + f.communs.map((x) => `${x.designation.fr} ${ar(x.montant)}`).join(', ') + `.\nDétails : ${SITE_URL}` },
     { k: /\b(adresse|ou etes|situe|localisation|campus|venir|trouver|aiza)\b/,
       r: `📍 ${c.siege.adresse.fr}, ${c.siege.ville.fr} ${c.siege.code_postal}, ${c.siege.pays.fr}.` },
@@ -53,13 +53,29 @@ function intents(d, mg) {
   ];
 }
 
+const MENU = `Bonjour et bienvenue à l'IUTAM Mahajanga. Comment pouvons-nous vous aider ?
+
+Écrivez un seul mot :
+- frais : frais de scolarité
+- admission : conditions et dossier
+- formations : parcours proposés
+- stages : stages par niveau
+- contact : adresse et téléphone
+
+Salama, tonga soa eto amin'ny IUTAM. Inona no azonay atao ho anao ? Soraty hoe : frais, admission, formations, stages na contact.
+
+Pour recommencer, écrivez : menu
+Raha hanomboka indray, soraty hoe : menu
+Notre équipe vous répond très vite.`;
+
 /* ---------- Moteur de réponse ---------- */
 async function answer(text) {
   const d = await getData();
   const mg = isMg(text), n = ' ' + norm(text) + ' ';
-  const salut = /\b(bonjour|bonsoir|salut|hello|salama|manao ahoana)\b/.test(n);
+  const salut = /\b(bonjour|bonsoir|salut|hello|hi|salama|manao ahoana|menu|aide|help|start|recommencer|debut)\b/.test(n);
 
   for (const it of intents(d, mg)) if (it.k.test(n)) return { text: it.r, found: true };
+  if (salut) return { text: MENU, found: false, greeting: true };
 
   // Meilleure question de la FAQ par recouvrement de mots
   const qt = new Set(tokens(text));
@@ -72,7 +88,6 @@ async function answer(text) {
     }
   }
   if (best && bs >= 0.4) return { text: best.r, found: true };
-  if (salut) return { text: `Bonjour 👋 Bienvenue à l'IUTAM Mahajanga ! Je peux vous renseigner sur les formations, l'admission, les frais, les stages et nos contacts. Posez votre question.`, found: false, greeting: true };
   const c = d.contacts.siege;
   return { text: `Merci pour votre message 🙏 Je n'ai pas la réponse exacte. Notre secrétariat vous répondra : 📞 ${c.telephone} · ✉️ ${c.email} · ${SITE_URL}`, found: false };
 }
@@ -131,7 +146,7 @@ function validSig(raw, sig) {
 
 if (process.argv.includes('--test')) {
   (async () => {
-    for (const q of ['Bonjour', 'Quels sont les frais ?', 'Où êtes-vous situés ?', 'Quelles formations ?', 'Conditions admission bac D ?', 'Ohatrinona ny saram-pianarana?', 'Y a-t-il une ferme-école ?', 'bonne chance ?? blabla']) {
+    for (const q of ['menu','Bonjour, quels sont les frais ?','Salama','quelque chose de bizarre']) {
       const a = await answer(q); console.log('\nQ:', q, '\nR:', a.text.slice(0, 400));
     }
   })();
